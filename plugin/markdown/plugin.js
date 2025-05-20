@@ -7,8 +7,9 @@
 import { marked } from 'marked';
 
 const DEFAULT_SLIDE_SEPARATOR = '\r?\n---\r?\n',
-	  DEFAULT_VERTICAL_SEPARATOR = null,
-	  DEFAULT_NOTES_SEPARATOR = '^\s*notes?:',
+	  DEFAULT_VERTICAL_SEPARATOR = '\r?\n----\r?\n',
+	  DEFAULT_NOTES_SEPARATOR = '\r?\n___\r?\n',
+    DEFAULT_FRAGMENT_SEPARATOR = '\r?\n--\r?\n',
 	  DEFAULT_ELEMENT_ATTRIBUTES_SEPARATOR = '\\\.element\\\s*?(.+?)$',
 	  DEFAULT_SLIDE_ATTRIBUTES_SEPARATOR = '\\\.slide:\\\s*?(\\\S.+?)$';
 
@@ -101,6 +102,7 @@ const Plugin = () => {
 		options.separator = options.separator || markdownConfig?.separator || DEFAULT_SLIDE_SEPARATOR;
 		options.verticalSeparator = options.verticalSeparator || markdownConfig?.verticalSeparator || DEFAULT_VERTICAL_SEPARATOR;
 		options.notesSeparator = options.notesSeparator || markdownConfig?.notesSeparator || DEFAULT_NOTES_SEPARATOR;
+		options.fragmentSeparator = options.fragmentSeparator || markdownConfig?.fragmentSeparator || DEFAULT_FRAGMENT_SEPARATOR;
 		options.attributes = options.attributes || '';
 
 		return options;
@@ -134,6 +136,7 @@ const Plugin = () => {
 	 */
 	function slidify( markdown, options ) {
 
+    console.log("start slidify");
 		options = getSlidifyOptions( options );
 
 		const separatorRegex = new RegExp( options.separator + ( options.verticalSeparator ? '|' + options.verticalSeparator : '' ), 'mg' ),
@@ -160,6 +163,16 @@ const Plugin = () => {
 
 			// pluck slide content from markdown input
 			content = markdown.substring( lastIndex, matches.index );
+      //sectionStack.push( "".concat('<p class="fragment">', content, '</p>'));
+
+      // Manage Fragment
+      let fragments = content.split(options.fragmentSeparator);
+      content = fragments.shift();;
+
+      for (const element of fragments) {
+        content = content.concat('<p class="fragment">', element, '</p>');
+      }
+
 
 			if( isHorizontal && wasHorizontal ) {
 				// add to horizontal stack
@@ -195,7 +208,7 @@ const Plugin = () => {
 				markdownSections += '<section '+ options.attributes +' data-markdown>' + createMarkdownSlide( sectionStack[i], options ) + '</section>';
 			}
 		}
-
+    console.log(markdownSections);
 		return markdownSections;
 
 	}
@@ -225,6 +238,7 @@ const Plugin = () => {
 								notesSeparator: section.getAttribute( 'data-separator-notes' ),
 								attributes: getForwardedAttributes( section )
 							});
+              console.log(section.outerHTML);
 						},
 
 						// Failed to load markdown
